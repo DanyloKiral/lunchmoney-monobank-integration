@@ -1,0 +1,29 @@
+{
+  "mono": {
+    "baseUrl": "https://api.monobank.ua",
+    "routes": {
+      "exchange_rates": "bank/currency",
+      "client_info": "personal/client-info",
+      "webhook_init": "personal/client-info",
+      "statement": "personal/statement/{account}/{from}/{to}"
+    }
+  },
+  "lunchmoney": {
+    "baseUrl": "https://dev.lunchmoney.app",
+    "routes": {
+      "categories": "v1/categories",
+      "transactions": "v1/transactions"
+    }
+  },
+  "mappings": {
+    "categories": {
+
+    },
+    "accounts": {
+
+    },
+    "currencies": {
+
+    }
+  }
+}

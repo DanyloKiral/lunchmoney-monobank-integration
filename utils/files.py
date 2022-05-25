@@ -11,7 +11,7 @@ def load_credentials():
 
 def save_to_json_file(obj, filename):
     with open(filename, "w") as fp:
-        json.dump(obj, fp)
+        json.dump(obj, fp, ensure_ascii=False)
 
 
 def __load_json(file_name):

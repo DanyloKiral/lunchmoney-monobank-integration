@@ -1,3 +1,5 @@
+from datetime import datetime
+from utils import datetime_to_unix
 import requests
 
 
@@ -26,8 +28,16 @@ class MonoApi:
         response = requests.get(url, headers=self.headers)
         return response.json()
 
-    def get_statement(self):
-        url = self.__format_uri(self.routes.get('statement'))
+    def get_statement(self, account_id, from_date: datetime, to_date: datetime = None):
+        from_unix = datetime_to_unix(from_date)
+        to_unix = datetime_to_unix(datetime.now() if to_date is None else to_date)
+
+        route_with_params = self.routes.get('statement')\
+            .replace('{account}', account_id)\
+            .replace('{from}', str(from_unix))\
+            .replace('{to}', str(to_unix))
+
+        url = self.__format_uri(route_with_params)
         response = requests.get(url, headers=self.headers)
         return response.json()
 

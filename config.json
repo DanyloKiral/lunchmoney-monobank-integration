@@ -11,19 +11,32 @@
   "lunchmoney": {
     "baseUrl": "https://dev.lunchmoney.app",
     "routes": {
-      "categories": "v1/categories",
-      "transactions": "v1/transactions"
+      "transactions": "v1/transactions",
+      "transaction_group": "v1/transactions/group",
+      "accounts": "v1/assets"
+    },
+    "options": {
+      "check_transaction_for_last_n_days": "30"
     }
   },
   "mappings": {
-    "categories": {
-
-    },
     "accounts": {
-
-    },
-    "currencies": {
-
+      "Mono Black": {
+        "currency": "uah",
+        "type": "black"
+      },
+      "Mono White": {
+        "currency": "uah",
+        "type": "white"
+      },
+      "Mono USD": {
+        "currency": "usd",
+        "type": "black"
+      },
+      "Mono FOP USD": {
+        "currency": "usd",
+        "type": "fop"
+      }
     }
   }
 }

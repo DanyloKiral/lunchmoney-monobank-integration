@@ -1,38 +1,29 @@
-import datetime
-
-from utils import load_credentials, load_configs, save_to_json_file
+from flow import ImportFlow
+from utils import load_credentials, load_configs, now
 import logging
-from mono_api import MonoApi
-
-
-def configure_logging():
-    # todo: add file and console handlers
-
-    logging.basicConfig(
-        filename='logs/logs.log',
-        format='%(asctime)s %(name)s:%(levelname)s - %(message)s',
-        level=logging.DEBUG
-    )
 
 
 def main():
-    configure_logging()
+    logging.basicConfig(
+        filename=f'logs/logs-{str(now())}.log',
+        format='%(asctime)s %(name)s:%(levelname)s - %(message)s',
+        level=logging.DEBUG
+    )
+    logging.info('app started')
 
-    logging.debug('app started')
+    try:
+        configs = load_configs()
+        credentials = load_credentials()
+        logging.info('loaded configs')
 
-    configs = load_configs()
-    credentials = load_credentials()
+        flow = ImportFlow(configs, credentials)
+        flow.run_import()
 
-    mono_api = MonoApi(configs.get('mono'), credentials.get('mono'))
-
-    client_info = mono_api.get_client_info()
-    save_to_json_file(client_info, 'data/client_info.json')
-
-    from_date = datetime.datetime.now() + datetime.timedelta(days=-31)
-    statement = mono_api.get_statement('0', from_date)
-    save_to_json_file(statement, 'data/statement.json')
-
-    logging.debug('fin')
+        logging.info('successfully finished')
+    except Exception as e:
+        logging.error('Something went wrong', exc_info=True)
+    finally:
+        logging.info('fin')
 
 
 if __name__ == '__main__':

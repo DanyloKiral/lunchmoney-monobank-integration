@@ -15,17 +15,15 @@ class MonoApi:
     def get_exchange_rates(self):
         url = self.__format_uri(self.routes.get('exchange_rates'))
         response = requests.get(url)
+        assert response.ok, f'Mono API get_exchange_rates error: {response.json()}'
 
         return response.json()
 
     def get_client_info(self):
         url = self.__format_uri(self.routes.get('client_info'))
         response = requests.get(url, headers=self.headers)
-        return response.json()
+        assert response.ok, f'Mono API get_client_info error: {response.json()}'
 
-    def get_client_info(self):
-        url = self.__format_uri(self.routes.get('client_info'))
-        response = requests.get(url, headers=self.headers)
         return response.json()
 
     def get_statement(self, account_id, from_date: datetime, to_date: datetime = None):
@@ -39,6 +37,8 @@ class MonoApi:
 
         url = self.__format_uri(route_with_params)
         response = requests.get(url, headers=self.headers)
+        assert response.ok, f'Mono API get_statement error: {response.json()}'
+
         return response.json()
 
     def init_webhook(self, webhook_url):
@@ -47,6 +47,7 @@ class MonoApi:
             'webHookUrl': webhook_url
         }
         response = requests.post(url, headers=self.headers, data=data)
+        assert response.ok, f'Mono API init_webhook error: {response.json()}'
         return response.json()
 
     def __format_uri(self, route):

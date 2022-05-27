@@ -3,7 +3,7 @@ import time
 
 from datetime import datetime
 from flow.mapper import Mapper
-from utils import add_days
+from utils import add_days, save_to_json_file
 from mono_api import MonoApi
 from lunchmoney_api import LunchmoneyApi
 
@@ -18,15 +18,10 @@ class ImportFlow:
         logging.info('initiated apis')
 
     def run_import(self):
-        mono_accounts = self.mono_api.get_client_info().get('accounts')
-        lunch_accounts = self.lunchmoney_api.get_accounts()
-        accounts_mapping = Mapper.create_accounts_mapping(
-            self.configs.get('mappings').get('accounts'),
-            mono_accounts,
-            lunch_accounts
-        )
+        accounts_mapping = self.create_account_mappings()
         logging.info('created account mappings')
 
+        new_transactions = []
         for account in accounts_mapping:
             lunch_acc = account.get('lunch_acc')
             mono_acc = account.get('mono_acc')
@@ -34,18 +29,32 @@ class ImportFlow:
 
             latest_transactions = self.lunchmoney_api.get_latest_transactions(lunch_acc.get('id'))
             transactions_per_date = self.__group_transaction_per_date(latest_transactions)
-            import_from_date, same_day_ids = self.__get_import_params(transactions_per_date, lunch_acc)
 
-            new_transactions = self.mono_api.get_statement(
+            import_from_date, same_day_ids = self.__get_import_params(transactions_per_date, lunch_acc)
+            new_account_transactions = self.mono_api.get_statement(
                 mono_acc.get('id'),
                 from_date=import_from_date
             )
-            account['new_transactions'] = new_transactions
-            if len(new_transactions) > 0:
-                logging.info(f'loaded {len(new_transactions)} new transactions for account {lunch_acc.get("name")}')
+            account['new_account_transactions'] = new_account_transactions
+            new_transactions = new_transactions + Mapper.map_to_lunch_transactions(new_account_transactions, lunch_acc)
+            if len(new_account_transactions) > 0:
+                logging.info(f'loaded {len(new_account_transactions)} new transactions for account {lunch_acc.get("name")}')
             else:
                 logging.info(f'no new transactions for account {lunch_acc.get("name")} found')
             time.sleep(60)
+        logging.info('checked all accounts for new transactions')
+
+        save_to_json_file(accounts_mapping, 'data/accounts_mapping.json')
+
+    def create_account_mappings(self):
+        mono_accounts = self.mono_api.get_client_info().get('accounts')
+        lunch_accounts = self.lunchmoney_api.get_accounts()
+        accounts_mapping = Mapper.create_accounts_mapping(
+            self.configs.get('mappings').get('accounts'),
+            mono_accounts,
+            lunch_accounts
+        )
+        return accounts_mapping
 
     @staticmethod
     def __group_transaction_per_date(latest_transactions: list):

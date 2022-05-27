@@ -1,5 +1,5 @@
 from iso4217 import Currency
-
+from utils import unix_to_datetime
 
 class Mapper:
     @staticmethod
@@ -13,6 +13,30 @@ class Mapper:
                 'lunch_acc': lunch_acc,
                 'mono_acc': mono_acc
             })
+        return result
+
+    @staticmethod
+    def map_to_lunch_transactions(mono_transactions, lunch_account):
+        result = []
+        for mono_trans in mono_transactions:
+            # todo: handle category, mcc parsing
+            # todo: check balance?
+
+            # note: mono transaction can have 'comment', if it is transfer
+            lunch_trans = {
+                'date': unix_to_datetime(mono_trans.get('time')).strftime('%Y-%m-%d'),
+                'amount': abs(mono_trans.get('amount')) / 100,
+                # 'category_id': '', # ???
+                'payee': mono_trans.get('description')[:140],
+                'currency': lunch_account.get('currency'),
+                'asset_id': lunch_account.get('id'),
+                # 'recurring_id': '',
+                'notes': '',
+                # 'status': '',
+                'external_id': mono_trans.get('id'),
+                'tags': ['mono_integration_test']
+            }
+            result.append(lunch_trans)
         return result
 
     @staticmethod

@@ -2,11 +2,11 @@ import json
 
 
 def load_configs():
-    return __load_json('config.json')
+    return __load_json("config.json")
 
 
 def load_credentials():
-    return __load_json('credentials.json')
+    return __load_json("credentials.json")
 
 
 def save_to_json_file(obj, filename):

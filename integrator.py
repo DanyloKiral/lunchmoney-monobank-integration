@@ -5,26 +5,26 @@ import logging
 
 def main():
     logging.basicConfig(
-        filename=f'logs/logs-{str(now())}.log',
-        format='%(asctime)s %(name)s:%(levelname)s - %(message)s',
+        filename=f"logs/logs-{str(now())}.log",
+        format="%(asctime)s %(name)s:%(levelname)s - %(message)s",
         level=logging.DEBUG
     )
-    logging.info('app started')
+    logging.info("app started")
 
     try:
         configs = load_configs()
         credentials = load_credentials()
-        logging.info('loaded configs')
+        logging.info("loaded configs")
 
         flow = ImportFlow(configs, credentials)
         flow.run_import()
 
-        logging.info('successfully finished')
+        logging.info("successfully finished")
     except Exception as e:
-        logging.error('Something went wrong', exc_info=True)
+        logging.error("Something went wrong", exc_info=True)
     finally:
-        logging.info('fin')
+        logging.info("fin")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

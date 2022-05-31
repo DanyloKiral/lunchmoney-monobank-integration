@@ -13,64 +13,122 @@ class ImportFlow:
         self.configs = configs
         self.api_credentials = credentials
 
-        self.mono_api = MonoApi(configs.get('mono'), credentials.get('mono'))
-        self.lunchmoney_api = LunchmoneyApi(configs.get('lunchmoney'), credentials.get('lunchmoney'))
-        logging.info('initiated apis')
+        self.mono_api = MonoApi(configs["mono"], credentials["mono"])
+        self.lunchmoney_api = LunchmoneyApi(configs["lunchmoney"], credentials["lunchmoney"])
+        logging.info("initiated apis")
 
     def run_import(self):
         accounts_mapping = self.create_account_mappings()
-        logging.info('created account mappings')
+        logging.info("created account mappings")
 
         new_transactions = []
         for account in accounts_mapping:
-            lunch_acc = account.get('lunch_acc')
-            mono_acc = account.get('mono_acc')
-            logging.info(f'loading transactions for account {lunch_acc.get("name")}')
+            lunch_acc = account["lunch_acc"]
+            mono_acc = account["mono_acc"]
+            logging.info(f"loading transactions for account {lunch_acc['name']}")
 
-            latest_transactions = self.lunchmoney_api.get_latest_transactions(lunch_acc.get('id'))
+            latest_transactions = self.lunchmoney_api.get_latest_transactions(lunch_acc["id"])
             transactions_per_date = self.__group_transaction_per_date(latest_transactions)
 
             import_from_date, same_day_ids = self.__get_import_params(transactions_per_date, lunch_acc)
             new_account_transactions = self.mono_api.get_statement(
-                mono_acc.get('id'),
+                mono_acc["id"],
                 from_date=import_from_date
             )
-            account['new_account_transactions'] = new_account_transactions
-            new_transactions = new_transactions + Mapper.map_to_lunch_transactions(new_account_transactions, lunch_acc)
+            account["new_account_transactions"] = new_account_transactions
+            new_transactions = new_transactions + Mapper.map_to_lunch_transactions(
+                new_account_transactions, lunch_acc, self.configs["mono"]["options"]["add_mcc_tag"])
             if len(new_account_transactions) > 0:
-                logging.info(f'loaded {len(new_account_transactions)} new transactions for account {lunch_acc.get("name")}')
+                logging.info(f"loaded {len(new_account_transactions)} new transactions for account {lunch_acc['name']}")
             else:
-                logging.info(f'no new transactions for account {lunch_acc.get("name")} found')
+                logging.info(f"no new transactions for account {lunch_acc['name']} found")
             time.sleep(60)
-        logging.info('checked all accounts for new transactions')
-
-        save_to_json_file(accounts_mapping, 'data/accounts_mapping.json')
+        logging.info("checked all accounts for new transactions")
+        save_to_json_file(accounts_mapping, "data/accounts_mapping.json")
+        transaction_monoid_to_lunchid = self.save_transactions(new_transactions)
+        logging.info("inserted transactions to Lunchmoney")
+        mono_tr_groups = self.save_transfer_groups(accounts_mapping, transaction_monoid_to_lunchid)
+        save_to_json_file(mono_tr_groups, "data/mono_tr_groups.json")
+        logging.info("inserted transactions groups to Lunchmoney")
 
     def create_account_mappings(self):
-        mono_accounts = self.mono_api.get_client_info().get('accounts')
+        mono_accounts = self.mono_api.get_client_info()["accounts"]
         lunch_accounts = self.lunchmoney_api.get_accounts()
         accounts_mapping = Mapper.create_accounts_mapping(
-            self.configs.get('mappings').get('accounts'),
+            self.configs["mappings"]["accounts"],
             mono_accounts,
             lunch_accounts
         )
         return accounts_mapping
 
+    def save_transactions(self, transactions):
+        transactions = self.lunchmoney_api.insert_transactions(transactions)
+        transaction_monoid_to_lunchid = {tr["external_id"]: tr["id"] for tr in transactions}
+        return transaction_monoid_to_lunchid
+
+    def save_transfer_groups(self, accounts_mapping: list, transaction_monoid_to_lunchid: dict):
+        transfer_mcc = self.configs["mono"]["options"]["transfer_mcc"]
+        add_mcc_tag = self.configs["mono"]["options"]["add_mcc_tag"]
+        group_max_time_diff_secs = self.configs["lunchmoney"]["options"]["group_max_time_diff_secs"]
+        groups = []
+
+        transfer_transactions = []
+        for account in accounts_mapping:
+            transactions = account["new_account_transactions"]
+
+            transfer_transactions = transfer_transactions + \
+                                    [trans for trans in transactions if trans["mcc"] == transfer_mcc]
+
+        logging.info(f"found {len(transfer_transactions)} transfer transactions")
+
+        already_in_group = set()
+        for index, tranfer in enumerate(transfer_transactions):
+            if index in already_in_group:
+                continue
+            already_in_group.add(index)
+            group_transfers = [gr_tr for gr_tr in transfer_transactions
+
+                               # if time is nearly same, but it is different transaction in list
+                               if gr_tr["id"] != tranfer["id"] and
+                                  abs(gr_tr["time"] - tranfer["time"]) < group_max_time_diff_secs
+
+                               #and abs(gr_tr["operationAmount"]) == abs(tranfer["operationAmount"])]
+
+                               # and if currency same - amounts should match
+                               and ((gr_tr["currencyCode"] == tranfer["currencyCode"] and
+                                     abs(gr_tr["operationAmount"]) == abs(tranfer["operationAmount"])) or
+
+                               # or if currencies are different - operationAmounts should match
+                                    (gr_tr["currencyCode"] != tranfer["currencyCode"] and
+                                     abs(gr_tr["operationAmount"]) == abs(tranfer["amount"])))]
+            if len(group_transfers) > 0:
+                [already_in_group.add(transfer_transactions.index(tr)) for tr in group_transfers]
+                groups.append([tranfer, *group_transfers])
+
+        logging.info(f"group transfer transactions into {len(groups)} groups")
+
+        for group in groups:
+            group_ids = [transaction_monoid_to_lunchid[tr["id"]] for tr in group]
+            lunch_group = Mapper.map_transaction_group(
+                group[0], group_ids, add_mcc_tag)
+            self.lunchmoney_api.create_transaction_group(lunch_group)
+        return groups
+
     @staticmethod
     def __group_transaction_per_date(latest_transactions: list):
         transactions_per_date = {}
         for trans in latest_transactions:
-            date_trans_list = transactions_per_date.setdefault(trans.get('date'), [])
-            transaction_external_id = trans.get('external_id')
+            date_trans_list = transactions_per_date.setdefault(trans["date"], [])
+            transaction_external_id = trans["external_id"]
             if transaction_external_id is not None:
                 date_trans_list.append(transaction_external_id)
         return transactions_per_date
 
-    @staticmethod
-    def __get_import_params(transactions_per_date: dict, lunch_acc):
+    def __get_import_params(self, transactions_per_date: dict, lunch_acc):
         if len(transactions_per_date.keys()) == 0:
-            created_at_date = lunch_acc.get('created_at').split('T')[0]
-            return datetime.strptime(created_at_date, "%Y-%m-%d").date(), []
+            default_start_date = self.configs["mono"]["options"]["default_start_date"]
+            #created_at_date = lunch_acc["created_at"].split("T")[0]
+            return datetime.strptime(default_start_date, "%Y-%m-%d").date(), []
         last_transaction_date = max(transactions_per_date.keys())
         same_day_ids = transactions_per_date.get(last_transaction_date)
         start_date = datetime.strptime(last_transaction_date, "%Y-%m-%d").date()

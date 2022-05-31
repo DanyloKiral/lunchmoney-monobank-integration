@@ -1,5 +1,5 @@
 from datetime import datetime
-from utils import datetime_to_unix
+from utils import datetime_to_unix, now
 import requests
 
 

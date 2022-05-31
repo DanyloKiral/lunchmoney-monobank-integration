@@ -6,6 +6,11 @@
       "client_info": "personal/client-info",
       "webhook_init": "personal/client-info",
       "statement": "personal/statement/{account}/{from}/{to}"
+    },
+    "options": {
+      "transfer_mcc": 4829,
+      "add_mcc_tag": true,
+      "default_start_date": "2022-05-01"
     }
   },
   "lunchmoney": {
@@ -16,7 +21,8 @@
       "accounts": "v1/assets"
     },
     "options": {
-      "check_transaction_for_last_n_days": "30"
+      "check_transaction_for_last_n_days": "30",
+      "group_max_time_diff_secs": 30
     }
   },
   "mappings": {
@@ -32,6 +38,10 @@
       "Mono USD": {
         "currency": "usd",
         "type": "black"
+      },
+      "Mono FOP UAH": {
+        "currency": "uah",
+        "type": "fop"
       },
       "Mono FOP USD": {
         "currency": "usd",

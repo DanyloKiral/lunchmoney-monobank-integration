@@ -5,12 +5,17 @@ from utils import unix_to_datetime
 
 class Mapper:
     @staticmethod
-    def create_accounts_mapping(account_mappings_config, mono_accounts: list, lunch_accounts: list):
+    def create_accounts_mapping(account_mappings_config, mono_client_info: dict, lunch_accounts: list):
+        mono_accounts = mono_client_info["accounts"]
+        mono_jars = mono_client_info["jars"]
         result = []
         # todo: fix n2 complexity
         for name, mono_props in account_mappings_config.items():
             lunch_acc = Mapper.__select_lunch_acc(lunch_accounts, name)
-            mono_acc = Mapper.__select_mono_acc(mono_accounts, mono_props.get("currency"), mono_props.get("type"))
+            if mono_props["type"] == "jar":
+                mono_acc = Mapper.__select_mono_jar(mono_jars, mono_props["jar_name"])
+            else:
+                mono_acc = Mapper.__select_mono_acc(mono_accounts, mono_props.get("currency"), mono_props.get("type"))
             result.append({
                 "lunch_acc": lunch_acc,
                 "mono_acc": mono_acc
@@ -66,6 +71,13 @@ class Mapper:
                            and acc["type"] == acc_type]
         assert len(mono_acc_search) == 1, f"Only one Mono account should have type {acc_type} and currency {currency}"
         return mono_acc_search[0]
+
+    @staticmethod
+    def __select_mono_jar(mono_jars, jar_name):
+        mono_jar_search = [jar for jar in mono_jars
+                           if jar["title"] == jar_name]
+        assert len(mono_jar_search) == 1, f"Only one Mono jar should have name {jar_name}"
+        return mono_jar_search[0]
 
     @staticmethod
     def __get_tags_for_mono_transaction(trans, add_mcc_tag):

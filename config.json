@@ -8,6 +8,8 @@
       "statement": "personal/statement/{account}/{from}/{to}"
     },
     "options": {
+      "max_statement_days": 30,
+      "requests_interval_sec": 60,
       "transfer_mcc": 4829,
       "add_mcc_tag": true,
       "default_start_date": "2022-05-01"
@@ -46,6 +48,10 @@
       "Mono FOP USD": {
         "currency": "usd",
         "type": "fop"
+      },
+      "Monobanka for change": {
+        "type": "jar",
+        "jar_name": "На інше"
       }
     }
   }

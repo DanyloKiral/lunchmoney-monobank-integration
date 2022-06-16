@@ -114,7 +114,7 @@ class ImportFlow:
         logging.info(f"group transfer transactions into {len(groups)} groups")
 
         for group in groups:
-            group_ids = [transaction_monoid_to_lunchid[tr["id"]] for tr in group]
+            group_ids = [transaction_monoid_to_lunchid[Mapper.generate_external_id(tr)] for tr in group]
             lunch_group = Mapper.map_transaction_group(
                 group[0], group_ids, add_mcc_tag)
             self.lunchmoney_api.create_transaction_group(lunch_group)

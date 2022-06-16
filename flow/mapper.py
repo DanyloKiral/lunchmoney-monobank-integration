@@ -3,6 +3,7 @@ import iso18245
 from iso4217 import Currency
 from utils import unix_to_datetime
 
+
 class Mapper:
     @staticmethod
     def create_accounts_mapping(account_mappings_config, mono_client_info: dict, lunch_accounts: list):
@@ -40,7 +41,7 @@ class Mapper:
                 # "recurring_id": "",
                 "notes": "",
                 # "status": "",
-                "external_id": mono_trans["id"],
+                "external_id": Mapper.generate_external_id(mono_trans),
                 "tags": Mapper.__get_tags_for_mono_transaction(mono_trans, add_mcc_tag)
             }
             result.append(lunch_trans)
@@ -56,6 +57,10 @@ class Mapper:
             "tags": Mapper.__get_tags_for_mono_transaction(any_group_transaction, add_mcc_tag),
             "transactions": transaction_ids
         }
+
+    @staticmethod
+    def generate_external_id(mono_transaction):
+        return f'{mono_transaction["time"]}_{mono_transaction["amount"]}'
 
     @staticmethod
     def __select_lunch_acc(lunch_accounts, name):

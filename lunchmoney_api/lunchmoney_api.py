@@ -47,6 +47,7 @@ class LunchmoneyApi:
         }
         response = requests.post(url, headers=self.headers, data=json.dumps(data))
         assert response.ok, f"Lunchmoney API insert_transactions error: {response.json()}"
+        assert response.status_code != 204, 'Lunchmoney API insert_transactions returns empty response'
 
         ids = response.json()["ids"]
         assert len(ids) == len(transaction_list), f"Quantity of IDs of newly created transactions should correspond " \

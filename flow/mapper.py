@@ -93,4 +93,5 @@ class Mapper:
             item = mcc.iso_description if len(mcc.iso_description) > 0 else mcc.usda_description
             if len(item) == 0:
                 item = tr_mcc
+            tags.append(item)
         return tags

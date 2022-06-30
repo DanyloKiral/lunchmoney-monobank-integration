@@ -50,11 +50,11 @@ class ImportFlow:
             if number_of_iterations_left > 0:
                 time.sleep(requests_interval_sec)
         logging.info("checked all accounts for new transactions")
-        save_to_json_file(accounts_mapping, "data/accounts_mapping.json")
+        # save_to_json_file(accounts_mapping, "data/accounts_mapping.json")
         transaction_monoid_to_lunchid = self.save_transactions(new_transactions)
         logging.info("inserted transactions to Lunchmoney")
         mono_tr_groups = self.save_transfer_groups(accounts_mapping, transaction_monoid_to_lunchid)
-        save_to_json_file(mono_tr_groups, "data/mono_tr_groups.json")
+        # save_to_json_file(mono_tr_groups, "data/mono_tr_groups.json")
         logging.info("inserted transactions groups to Lunchmoney")
 
     def create_account_mappings(self):
@@ -114,7 +114,7 @@ class ImportFlow:
         logging.info(f"group transfer transactions into {len(groups)} groups")
 
         for group in groups:
-            group_ids = [transaction_monoid_to_lunchid[Mapper.generate_external_id(tr)] for tr in group]
+            group_ids = [transaction_monoid_to_lunchid[tr["id"]] for tr in group]
             lunch_group = Mapper.map_transaction_group(
                 group[0], group_ids, add_mcc_tag)
             self.lunchmoney_api.create_transaction_group(lunch_group)

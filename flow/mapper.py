@@ -1,3 +1,5 @@
+import logging
+
 import iso18245
 
 from iso4217 import Currency
@@ -84,10 +86,13 @@ class Mapper:
     def __get_tags_for_mono_transaction(trans, add_mcc_tag):
         tags = ["Monobank integration"]
         tr_mcc = str(trans["mcc"])
-        if add_mcc_tag and len(tr_mcc) > 0:
-            mcc = iso18245.get_mcc(tr_mcc)
-            item = mcc.iso_description if len(mcc.iso_description) > 0 else mcc.usda_description
-            if len(item) == 0:
-                item = tr_mcc
-            tags.append(item)
+        if add_mcc_tag and len(tr_mcc) > 0 and iso18245.validate_mcc(tr_mcc):
+            try:
+                mcc = iso18245.get_mcc(tr_mcc)
+                item = mcc.iso_description if len(mcc.iso_description) > 0 else mcc.usda_description
+                if len(item) == 0:
+                    item = tr_mcc
+                tags.append(item)
+            except iso18245.MCCNotFound:
+                logging.exception(f'MCC not found error. mcc = {tr_mcc}')
         return tags

@@ -101,9 +101,12 @@ class ImportFlow:
                                #and abs(gr_tr["operationAmount"]) == abs(tranfer["operationAmount"])]
 
                                # and if currency same - amounts should match
-                               and abs(gr_tr["operationAmount"]) == abs(tranfer["operationAmount"]) or
-                                   abs(gr_tr["operationAmount"]) == abs(tranfer["amount"]) or
-                                   abs(gr_tr["amount"]) == abs(tranfer["amount"])]
+                               and ((gr_tr["currencyCode"] == tranfer["currencyCode"] and
+                                     abs(gr_tr["operationAmount"]) == abs(tranfer["operationAmount"])) or
+
+                                    # or if currencies are different - operationAmounts should match
+                                    (gr_tr["currencyCode"] != tranfer["currencyCode"] and
+                                     abs(gr_tr["operationAmount"]) == abs(tranfer["amount"])))]
             if len(group_transfers) > 0:
                 [already_in_group.add(transfer_transactions.index(tr)) for tr in group_transfers]
                 groups.append([tranfer, *group_transfers])

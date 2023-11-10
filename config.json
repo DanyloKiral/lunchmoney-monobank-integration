@@ -1,7 +1,7 @@
 {
   "logs": {
-    "logs_folder": "logs-danylo",
-    "data_log_folder": "data-danylo"
+    "logs_folder": "logs",
+    "data_log_folder": "data"
   },
   "mono": {
     "baseUrl": "https://api.monobank.ua",
@@ -43,7 +43,7 @@
     }
   },
   "firefly-importer": {
-    "auto_import_url": "http://fireflyIII-importer-danylo:8080",
+    "auto_import_url": "http://fireflyIII-importer:8080",
     "folder": "/data/import-folder"
   },
   "mappings": {

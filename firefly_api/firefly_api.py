@@ -2,17 +2,21 @@ import json
 import logging
 import requests
 from utils import now, add_days
+import time
 
 class FireflyApi:
     def __init__(self, configs, credentials):
         self.baseUrl = configs.get("baseUrl")
         self.routes = configs.get("routes")
+        self.options = configs.get("options")
+        self.client_id = credentials.get('client_id')
+        self.client_secret = credentials.get('client_secret')
+        
         self.headers = {
             "Authorization": f"Bearer {credentials.get('token')}",
             "Content-Type": "application/json",
             "accept": "application/vnd.api+json",
         }
-        self.options = configs.get("options")
 
     def get_accounts(self):
         url = self.__format_uri(self.routes.get("accounts"))
@@ -44,6 +48,7 @@ class FireflyApi:
     def insert_transactions(self, transaction_list: list):
         url = self.__format_uri(self.routes.get("transactions"))
         for transaction in transaction_list: 
+            response = None
             try:
                 data = {
                     "error_if_duplicate_hash": False,
@@ -53,12 +58,11 @@ class FireflyApi:
                     "transactions": [transaction]
                 }
                 response = requests.post(url, headers=self.headers, data=json.dumps(data))
-                data = response.json()
                 assert response.ok, f"FireflyApi API insert_transactions error: {response.json()}"
-                assert response.status_code != 204, 'FireflyApi API insert_transactions returns empty response'
             except Exception as ex:
-                logging.warning(f"Error during transaction insert. Exception = {ex}")
-                
+                logging.warning(f"Error during transaction insert. Status = {response.status_code}. Response = {response.text}. Exception = {ex}.")
+            finally:
+                time.sleep(2)                
     
     def __format_uri(self, route):
         return f"{self.baseUrl}/{route}"

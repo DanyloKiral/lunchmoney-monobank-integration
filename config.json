@@ -1,4 +1,8 @@
 {
+  "logs": {
+    "logs_folder": "logs-danylo",
+    "data_log_folder": "data-danylo"
+  },
   "mono": {
     "baseUrl": "https://api.monobank.ua",
     "routes": {

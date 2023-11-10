@@ -60,31 +60,36 @@ class Mapper:
             trans_has_diff_currency = mono_trans_currency_code.upper() != firefly_account["currency"].upper()
             trans_is_withdrawal = mono_trans["amount"] <= 0
             firefly_trans = {
-                #"order": 0,
+                "order": 0,
                 "external_id": mono_trans["id"],
-                #"type": "withdrawal" if trans_is_withdrawal else "deposit",
-                "date": unix_to_datetime(mono_trans["time"]).strftime("%Y-%m-%d"),
+                "type": "withdrawal" if trans_is_withdrawal else "deposit",
+                "date": unix_to_datetime(mono_trans["time"]).strftime('%Y-%m-%dT%H:%M:%SZ'),
                 "description": mono_trans["description"],
 
-                "amount": mono_trans["amount"] / 100,
-                "foreign_currency_code": mono_trans_currency_code if trans_has_diff_currency else None,
-                "foreign_amount": mono_trans["operationAmount"] / 100 if trans_has_diff_currency else None,
+                "amount": abs(mono_trans["amount"] / 100),
                 "currency_code": firefly_account["currency"],
 
-                "source_id": firefly_account["id"] if trans_is_withdrawal else None,
-                "destination_name": mono_trans["description"] if trans_is_withdrawal else None,
-
-                "source_name": mono_trans["description"] if not trans_is_withdrawal else None,
-                "destination_id": firefly_account["id"] if not trans_is_withdrawal else None,
                 #"notes": "",
                 "tags": Mapper.__get_tags_for_mono_transaction(mono_trans, add_mcc_tag)
             }
+
+            if (trans_is_withdrawal):
+                firefly_trans["source_id"] = firefly_account["id"]
+                firefly_trans["destination_name"] = mono_trans["description"]
+            else:
+                firefly_trans["source_name"] = mono_trans["description"]
+                firefly_trans["destination_id"] = firefly_account["id"]
+
+            if (trans_has_diff_currency):
+                firefly_trans["foreign_currency_code"] = mono_trans_currency_code
+                firefly_trans["foreign_amount"] = abs(mono_trans["operationAmount"] / 100)
+
             result.append(firefly_trans)
         return result
     
     @staticmethod
     def __get_tags_for_mono_transaction(trans, add_mcc_tag):
-        tags = []
+        tags = ["mono-integration"]
         tr_mcc = str(trans["mcc"])
         if add_mcc_tag and len(tr_mcc) > 0 and iso18245.validate_mcc(tr_mcc):
             try:
@@ -95,4 +100,4 @@ class Mapper:
                 tags.append(item)
             except iso18245.MCCNotFound:
                 logging.exception(f'MCC not found error. mcc = {tr_mcc}')
-        return '' #','.join(tags)
+        return tags

@@ -2,6 +2,7 @@ import json
 import csv
 import os
 import shutil
+from collections import defaultdict
 
 def load_configs():
     return __load_json("config.json")
@@ -19,10 +20,12 @@ def save_list_to_csv_file(rows: list[dict], filename):
     if len(rows) < 1:
         return
     headers = list(rows[0].keys())
+    factory = (lambda: "")
+    formatted_rows = [defaultdict(factory, row) for row in rows]
     with open(filename, "w") as fp:
         writer = csv.DictWriter(fp, fieldnames=headers)
         writer.writeheader()
-        writer.writerows(rows)
+        writer.writerows(formatted_rows)
 
 def remove_file_if_exists(filename):
     try:
@@ -33,7 +36,7 @@ def remove_file_if_exists(filename):
 def copy_file(src, dst):
     shutil.copyfile(src, dst)
 
-def __load_json(file_name):
+def load_json(file_name):
     file = open(file_name)
     config = json.load(file)
     file.close()

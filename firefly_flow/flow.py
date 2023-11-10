@@ -2,7 +2,6 @@ import logging
 import time
 
 from datetime import datetime
-from firefly_api.firefly_importer_api import FireflyImporterApi
 from firefly_flow.mapper import Mapper
 from utils import add_days, save_to_json_file, now
 from mono_api import MonoApi
@@ -16,19 +15,17 @@ class ImportFlow:
 
         self.mono_api = MonoApi(configs["mono"], credentials["mono"])
         self.firefly_api = FireflyApi(configs["firefly"], credentials["firefly"])
-        self.firefly_importer_api = FireflyImporterApi(configs["firefly-importer"], credentials["firefly-importer"])
         logging.info("initiated apis")
 
     def run_import(self):
-        importer_file = "data-to-import/new_transactions.csv"
-        remove_file_if_exists(importer_file)
         requests_interval_sec = self.configs["mono"]["options"]["requests_interval_sec"]
         accounts_mapping = self.create_account_mappings()
         logging.info("created account mappings")
 
-        new_transactions = []
+        all_transactions = []
         number_of_iterations_left = len(accounts_mapping)
         for account in accounts_mapping:
+            new_transactions = []
             number_of_iterations_left -= 1
             firefly_acc = account["firefly_acc"]
             mono_acc = account["mono_acc"]
@@ -45,27 +42,22 @@ class ImportFlow:
             new_account_transactions = self.__filter_transactions(latest_transactions, new_account_transactions)
 
             account["new_account_transactions"] = new_account_transactions
-            new_transactions = new_transactions + Mapper.map_to_firefly_transactions(
+            new_account_transactions = Mapper.map_to_firefly_transactions(
                 new_account_transactions, firefly_acc, self.configs["mono"]["options"]["add_mcc_tag"])
             if len(new_account_transactions) > 0:
+                all_transactions = all_transactions + new_account_transactions
+                self.firefly_api.insert_transactions(new_account_transactions)
                 logging.info(f"loaded {len(new_account_transactions)} new transactions for account {firefly_acc['name']}")
             else:
                 logging.info(f"no new transactions for account {firefly_acc['name']} found")
+
             if number_of_iterations_left > 0:
                 time.sleep(requests_interval_sec)
-        if len(new_transactions) < 1:
+        if len(all_transactions) < 1:
             logging.info("no new transactions available.fin")
             return
-        logging.info(f"checked all accounts for new transactions. \nInserting {len(new_transactions)} transactions")
-        # save_to_json_file(accounts_mapping, "data/firefly_accounts_mapping.json")
-        # save_to_json_file(new_transactions, "data/firefly_new_transactions.json")
-        save_list_to_csv_file(new_transactions, importer_file)
-        logging.info("saved transactions to file")
-        #self.firefly_api.insert_transactions(new_transactions)
-        #logging.info("Inserted transactions")
-        #self.firefly_importer_api.trigger_auto_import_from_folder()
-        #self.firefly_importer_api.auto_upload(importer_file, "data-to-import/new_transactions.json")
-        logging.info("triggered auto import")
+        logging.info(f"checked all accounts for new transactions. \nInserted {len(new_transactions)} transactions")
+        self.__write_data_log(all_transactions)
 
     def create_account_mappings(self):
         client_info = self.mono_api.get_client_info()
@@ -76,6 +68,13 @@ class ImportFlow:
             firefly_accounts
         )
         return accounts_mapping
+
+    def __write_data_log(self, all_transactions):
+        current_timestamp = datetime.now().strftime('%Y-%m-%dT%H:%M')
+        data_log_folder = self.configs.get("logs").get("data_log_folder")
+        data_log_filename = f"{data_log_folder}/new_transactions_{current_timestamp}.json"
+        save_to_json_file(all_transactions, data_log_filename)
+        logging.info(f"saved data log to {data_log_filename}.")
     
     @staticmethod
     def __filter_transactions(firefly_acc_transactions, new_mono_transactions):

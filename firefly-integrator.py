@@ -1,11 +1,11 @@
-from flow import ImportFlow
+from firefly_flow import ImportFlow
 from utils import load_credentials, load_configs, now
 import logging
 
 
 def main():
     logging.basicConfig(
-        filename=f"logs/logs-{str(now())}.log",
+        filename=f"logs/firefly-logs-{str(now())}.log",
         format="%(asctime)s %(name)s:%(levelname)s - %(message)s",
         level=logging.DEBUG
     )

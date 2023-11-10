@@ -2,7 +2,7 @@ import logging
 import time
 
 from datetime import datetime
-from flow.mapper import Mapper
+from lunchmoney_flow.mapper import Mapper
 from utils import add_days, save_to_json_file, now
 from mono_api import MonoApi
 from lunchmoney_api import LunchmoneyApi

@@ -1,3 +1,4 @@
+#!/bin/sh
 echo "$(date) - Start integration monobank->firefly."
 cd "${0%/*}"
 export PYTHONDONTWRITEBYTECODE=1

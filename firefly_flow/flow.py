@@ -56,7 +56,7 @@ class ImportFlow:
         if len(all_transactions) < 1:
             logging.info("no new transactions available.fin")
             return
-        logging.info(f"checked all accounts for new transactions. \nInserted {len(new_transactions)} transactions")
+        logging.info(f"checked all accounts for new transactions. \nInserted {len(all_transactions)} transactions")
         self.__write_data_log(all_transactions)
 
     def create_account_mappings(self):

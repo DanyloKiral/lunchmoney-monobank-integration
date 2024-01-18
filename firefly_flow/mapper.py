@@ -10,7 +10,7 @@ class Mapper:
     @staticmethod
     def create_accounts_mapping(account_mappings_config, mono_client_info: dict, firefly_accounts: list):
         mono_accounts = mono_client_info["accounts"]
-        mono_jars = mono_client_info["jars"]
+        mono_jars = mono_client_info["jars"] if "jars" in mono_client_info else []
         result = []
         # todo: fix n2 complexity
         for name, mono_props in account_mappings_config.items():
